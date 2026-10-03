@@ -1,0 +1,448 @@
+<title>Swing Desk</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F2F4F3; --surface:#FFFFFF; --surface-2:#E9EDEB; --ink:#151F1E; --muted:#5F6D6A; --line:#D5DCD9;
+  --accent:#0E7C86; --accent-ink:#FFFFFF; --good:#1E8A4C; --warn:#B9770B; --bad:#C23B3B; --idle:#9AA6A3;
+  --good-bg:rgba(30,138,76,.12); --warn-bg:rgba(185,119,11,.14); --bad-bg:rgba(194,59,59,.12); --accent-bg:rgba(14,124,134,.12);
+  --display:"Archivo","IBM Plex Sans",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1413; --surface:#161E1D; --surface-2:#1E2827; --ink:#E5ECEA; --muted:#93A19D; --line:#273331;
+  --accent:#3EB5BF; --accent-ink:#06191B; --good:#3DBA6E; --warn:#D9973A; --bad:#E0625F; --idle:#5C6B68;
+  --good-bg:rgba(61,186,110,.16); --warn-bg:rgba(217,151,58,.18); --bad-bg:rgba(224,98,95,.16); --accent-bg:rgba(62,181,191,.16);
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1413; --surface:#161E1D; --surface-2:#1E2827; --ink:#E5ECEA; --muted:#93A19D; --line:#273331;
+  --accent:#3EB5BF; --accent-ink:#06191B; --good:#3DBA6E; --warn:#D9973A; --bad:#E0625F; --idle:#5C6B68;
+  --good-bg:rgba(61,186,110,.16); --warn-bg:rgba(217,151,58,.18); --bad-bg:rgba(224,98,95,.16); --accent-bg:rgba(62,181,191,.16);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45}
+.wrap{max-width:1380px;margin:0 auto;padding:20px 22px 48px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 24px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+h1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:-.01em;margin:0}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.kpis{display:flex;gap:26px;flex-wrap:wrap}
+.kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.kpi .v{font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .d{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.pills{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:500;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.pill.good{background:var(--good-bg);color:var(--good);border-color:transparent}
+.pill.warn{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+.pill.bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
+.pill.accent{background:var(--accent-bg);color:var(--accent);border-color:transparent}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;margin-top:18px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+section.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.panel h2{font-family:var(--display);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 12px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.panel h2 .meta{font-family:var(--mono);font-size:11px;text-transform:none;letter-spacing:0;font-weight:400}
+.stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+/* pipeline */
+.pipe{overflow-x:auto}
+.pipe svg{display:block;min-width:720px;width:100%;height:auto}
+.node rect{fill:var(--surface-2);stroke:var(--line);stroke-width:1.2;rx:6}
+.node.ok rect{stroke:var(--good)} .node.error rect{stroke:var(--bad)} .node.skipped rect{stroke:var(--warn)}
+.node.running rect{stroke:var(--accent);stroke-width:2}
+.node text{fill:var(--ink);font-family:var(--display);font-size:13px;font-weight:600}
+.node .st{fill:var(--muted);font-family:var(--mono);font-size:10.5px;font-weight:400}
+.node .badge{fill:var(--idle)} .node.ok .badge{fill:var(--good)} .node.error .badge{fill:var(--bad)} .node.skipped .badge{fill:var(--warn)} .node.running .badge{fill:var(--accent)}
+.edge{stroke:var(--line);stroke-width:1.5;fill:none} .edge.active{stroke:var(--accent)}
+@keyframes pulse{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}
+.node.running .badge{animation:pulse 1.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.node.running .badge{animation:none}}
+.officer{fill:var(--accent-bg);stroke:var(--accent)}
+.runs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:12px}
+.run{border:1px solid var(--line);border-radius:6px;padding:9px 11px;background:var(--surface)}
+.run .n{font-family:var(--display);font-weight:600;font-size:12.5px;display:flex;justify-content:space-between;align-items:center}
+.run .s{color:var(--muted);font-size:12px;margin-top:4px;min-height:17px}
+.run .t{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px}
+/* officer gauges */
+.gauges{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.g .l{font-size:11.5px;color:var(--muted);display:flex;justify-content:space-between}
+.g .v{font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums;margin:3px 0 5px}
+.bar{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:var(--accent);border-radius:3px;transform-origin:left center;transform:scaleX(0);transition:transform .4s ease}
+.bar i.warn{background:var(--warn)} .bar i.bad{background:var(--bad)}
+.rules{margin:12px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 16px;font-size:12.5px;color:var(--muted)}
+.rules li::before{content:"—";margin-right:6px;color:var(--accent)}
+/* tables */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:500;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.empty{color:var(--muted);font-size:13px;padding:10px 0}
+.note{font-size:12.5px;color:var(--muted);padding:9px 11px;border:1px dashed var(--line);border-radius:6px}
+.note.bad{color:var(--bad);border-color:var(--bad)}
+.sym{font-family:var(--mono);font-weight:500}
+.tag{font-size:11px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--muted);font-family:var(--mono)}
+/* learning */
+.params{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.param{border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.param .k{font-size:11px;color:var(--muted)} .param .v{font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums}
+.lessons{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.lessons li{padding:8px 0;border-bottom:1px solid var(--line)} .lessons li:last-child{border-bottom:0}
+.lessons .d{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.lessons .x{font-size:12px;color:var(--muted);margin-top:3px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.stat .v{font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums}
+.foot{margin-top:22px;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 20px}
+a{color:var(--accent)}
+button{font:inherit;font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <h1>Swing Desk</h1>
+    <div class="sub">Mission Control for a rules-based options desk run by Claude. Strategy as written in PROMPT 0. Base <span id="k-base">$5,000</span>. Officer caps are hard. <a href="{{FLOOR_URL}}">Watch the floor</a></div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="l">Equity vs base</div><div class="v" id="k-equity">—</div><div class="d" id="k-equity-d">base $5,000.00</div></div>
+    <div class="kpi"><div class="l">Week P&amp;L</div><div class="v" id="k-week">—</div><div class="d" id="k-week-d">breaker at −$300</div></div>
+    <div class="kpi"><div class="l">Month P&amp;L</div><div class="v" id="k-month">—</div><div class="d" id="k-month-d">halt at −$500</div></div>
+    <div class="kpi"><div class="l">Account cash</div><div class="v" id="k-cash">—</div><div class="d" id="k-cash-d">reserve above base untouched</div></div>
+  </div>
+  <div class="pills" id="pills">
+    <span class="pill" id="p-state"><span class="dot"></span>Officer: waiting for data</span>
+    <span class="pill" id="p-broker"><span class="dot"></span>Broker: connecting</span>
+    <span class="pill" id="p-db"><span class="dot"></span>Desk memory: connecting</span>
+    <button id="kill" disabled title="Kill switch: blocks new entries; open positions keep their stops">Halt desk</button>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="stack">
+    <section class="panel">
+      <h2>Workflow <span class="meta" id="pipe-meta">live from desk memory</span></h2>
+      <div class="pipe">
+        <svg viewBox="0 0 900 190" role="img" aria-label="Swing Desk workflow pipeline">
+          <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--line)"/></marker></defs>
+          <!-- edges -->
+          <path class="edge" d="M150 60 H190" marker-end="url(#arr)"/>
+          <path class="edge" d="M330 60 H370" marker-end="url(#arr)"/>
+          <path class="edge" d="M510 60 H550" marker-end="url(#arr)"/>
+          <path class="edge" d="M690 60 H730" marker-end="url(#arr)"/>
+          <path class="edge" d="M800 95 V120 H450 V150" marker-end="url(#arr)"/>
+          <path class="edge" d="M380 165 H210 V95" marker-end="url(#arr)"/>
+          <path class="edge" d="M260 140 V95" marker-end="url(#arr)"/>
+          <!-- nodes -->
+          <g class="node" id="n-scan" transform="translate(20,25)"><rect width="130" height="70"/><circle class="badge" cx="14" cy="16" r="5"/><text x="26" y="20">Morning scan</text><text class="st" x="12" y="40">08:30 ET</text><text class="st" id="n-scan-s" x="12" y="58">idle</text></g>
+          <g class="node" id="n-entry" transform="translate(200,25)"><rect width="130" height="70"/><circle class="badge" cx="14" cy="16" r="5"/><text x="26" y="20">Entry window</text><text class="st" x="12" y="40">10:30 · 13:30</text><text class="st" id="n-entry-s" x="12" y="58">idle</text></g>
+          <g class="node" id="n-stop" transform="translate(380,25)"><rect width="130" height="70"/><circle class="badge" cx="14" cy="16" r="5"/><text x="26" y="20">TP resting</text><text class="st" x="12" y="40">GTC at broker</text><text class="st" id="n-stop-s" x="12" y="58">—</text></g>
+          <g class="node" id="n-monitor" transform="translate(560,25)"><rect width="130" height="70"/><circle class="badge" cx="14" cy="16" r="5"/><text x="26" y="20">Monitor</text><text class="st" x="12" y="40">12:30 ET</text><text class="st" id="n-monitor-s" x="12" y="58">idle</text></g>
+          <g class="node" id="n-close" transform="translate(740,25)"><rect width="130" height="70"/><circle class="badge" cx="14" cy="16" r="5"/><text x="26" y="20">Close review</text><text class="st" x="12" y="40">15:30 ET</text><text class="st" id="n-close-s" x="12" y="58">idle</text></g>
+          <g class="node" id="n-retro" transform="translate(385,130)"><rect width="130" height="50"/><circle class="badge" cx="14" cy="16" r="5"/><text x="26" y="20">Weekly retro</text><text class="st" id="n-retro-s" x="12" y="40">idle</text></g>
+          <g class="node" id="n-officer" transform="translate(195,105)"><rect class="officer" width="130" height="34"/><text x="12" y="22">Desk Officer veto</text></g>
+        </svg>
+      </div>
+      <div class="runs" id="runs"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Desk Officer <span class="meta" id="officer-meta"></span></h2>
+      <div class="gauges">
+        <div class="g"><div class="l"><span>Open positions</span><span id="g-pos-cap">cap</span></div><div class="v" id="g-pos">—</div><div class="bar"><i id="b-pos" ></i></div></div>
+        <div class="g"><div class="l"><span>Max loss at risk</span><span id="g-risk-cap">cap</span></div><div class="v" id="g-risk">—</div><div class="bar"><i id="b-risk" ></i></div></div>
+        <div class="g"><div class="l"><span>Deployed</span><span id="g-dep-cap">open positions</span></div><div class="v" id="g-dep">—</div><div class="bar"><i id="b-dep" ></i></div></div>
+        <div class="g"><div class="l"><span>Largest max loss</span><span id="g-big-cap">cap</span></div><div class="v" id="g-big">—</div><div class="bar"><i id="b-big" ></i></div></div>
+        <div class="g"><div class="l"><span>Loss streak</span><span id="g-streak-cap">halve at 3</span></div><div class="v" id="g-streak">—</div><div class="bar"><i id="b-streak" ></i></div></div>
+      </div>
+      <div id="officer-alerts" style="margin-top:12px;display:flex;flex-direction:column;gap:6px"></div>
+      <ul class="rules" id="rules">
+        <li>Defined-risk option positions only, one strategy, written in PROMPT 0</li>
+        <li>Fixed max loss per position; quantity derived from it, never scaled up</li>
+        <li>Caps on open positions, per underlying, and new entries per day</li>
+        <li>Entries inside the entry window only</li>
+        <li>Every fill gets a resting GTC exit order at the broker</li>
+        <li>Stop rule applied at every monitor and close stage</li>
+        <li>Event and earnings blackouts; liquidity floor on every leg</li>
+        <li>Weekly breaker: no new entries. Monthly breaker: flat and halted</li>
+        <li>Kill switch: halted = no entries, resting exits stay</li>
+        <li>Caps live in config/caps and only a human changes them</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>Candidates and open theses <span class="meta" id="theses-meta"></span></h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Symbol</th><th>Setup</th><th>Status</th><th class="num">Expiry / short-long</th><th class="num">Stop mark</th><th class="num">TP price</th><th class="num">Qty</th><th class="num">Max loss</th><th>Credit</th><th class="num">Indicators</th><th>Council</th><th>Officer</th></tr></thead>
+        <tbody id="theses-body"></tbody>
+      </table></div>
+      <div class="empty" id="theses-empty">No candidates yet. The morning scan writes them here.</div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="panel">
+      <h2>Broker positions <span class="meta" id="pos-meta"></span></h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Contract</th><th class="num">Qty</th><th class="num">Avg price</th><th class="num">Mark</th><th class="num">P&amp;L</th><th>Side</th></tr></thead>
+        <tbody id="pos-body"></tbody>
+      </table></div>
+      <div class="empty" id="pos-empty">No open option positions in the agentic account.</div>
+      <div id="pos-note"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Broker orders <span class="meta" id="ord-meta">last 20</span></h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Type</th><th>State</th><th class="num">Qty</th><th class="num">Price</th></tr></thead>
+        <tbody id="ord-body"></tbody>
+      </table></div>
+      <div class="empty" id="ord-empty">No orders yet.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Learning <span class="meta" id="learn-meta"></span></h2>
+      <div class="stats">
+        <div class="stat"><div class="l">Trades</div><div class="v" id="s-trades">0</div></div>
+        <div class="stat"><div class="l">Win rate</div><div class="v" id="s-win">—</div></div>
+        <div class="stat"><div class="l">Avg return on risk</div><div class="v" id="s-avgr">—</div></div>
+        <div class="stat"><div class="l">Avg days held</div><div class="v" id="s-exp">—</div></div>
+      </div>
+      <h2 style="margin-top:16px">Tunable parameters <span class="meta">retro may move these within bounds</span></h2>
+      <div class="params" id="params"></div>
+      <h2 style="margin-top:16px">Lessons <span class="meta">newest first</span></h2>
+      <ul class="lessons" id="lessons"></ul>
+      <div class="empty" id="lessons-empty">No lessons yet. The weekly retro needs at least 5 closed trades per lesson.</div>
+    </section>
+  </div>
+</div>
+
+<div class="foot">
+  <span id="f-updated">Broker data: not loaded</span>
+  <span>Desk memory updates live; broker data refreshes about once a minute while this page is open.</span>
+  <button id="refresh" hidden>Refresh broker data</button>
+</div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  let BASE = 5000; let CAPS = {};
+  function renderBase(){ $('k-base').textContent = '$' + fmtN(BASE,0); $('k-week-d').textContent = 'breaker at ' + fmt$(-0.06*BASE); $('k-month-d').textContent = 'halt at ' + fmt$(-0.10*BASE); $('g-dep-cap').textContent = 'of $' + fmtN(BASE,0); }
+  const fmt$ = n => (n<0?'−':'') + '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtN = (n,d=2) => Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const num = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+  const tfmt = iso => { if(!iso) return '—'; const d = new Date(iso); if(isNaN(d)) return String(iso); return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'America/New_York'}) + ' ET'; };
+  const signed = (el,n) => { el.textContent = n==null ? '—' : fmt$(n); el.classList.toggle('pos', n>0); el.classList.toggle('neg', n<0); };
+  const setPill = (id, cls, text) => { const p = $(id); p.className = 'pill' + (cls?' '+cls:''); p.innerHTML = '<span class="dot"></span>' + text; };
+
+  // ---------- state ----------
+  const S = { portfolio:null, positions:[], orders:[], quotes:{}, runs:{}, theses:[], state:null, params:null, stats:null, lessons:[], account:null, brokerAt:null };
+
+  // ---------- render: pipeline + runs ----------
+  const STAGES = [['scan','Morning scan'],['entry','Entry window'],['monitor','Midday monitor'],['close','Close review'],['retro','Weekly retro'],['setup','Setup']];
+  function renderRuns(){
+    for (const [k] of STAGES){
+      const n = $('n-'+k); if(!n) continue;
+      const r = S.runs[k];
+      n.classList.remove('ok','error','skipped','running');
+      if(r && r.status) n.classList.add(r.status);
+      const s = $('n-'+k+'-s'); if(s) s.textContent = r ? (r.status + (r.finished_at||r.started_at ? ' · ' + tfmt(r.finished_at||r.started_at).replace(' ET','') : '')) : 'idle';
+    }
+    // stop node reflects broker: any open position with a resting stop
+    const stopN = $('n-stop'); stopN.classList.remove('ok','error','running');
+    const openPos = S.theses.filter(t => t.status==='open');
+    if(openPos.length){ const covered = openPos.filter(t => t.tp_order_id).length; stopN.classList.add(covered===openPos.length ? 'ok' : 'error'); $('n-stop-s').textContent = covered + ' of ' + openPos.length + ' covered'; }
+    else $('n-stop-s').textContent = 'no positions';
+    const box = $('runs'); box.innerHTML = '';
+    for (const [k,label] of STAGES){
+      const r = S.runs[k]; if(!r && k==='setup') continue;
+      const d = document.createElement('div'); d.className='run';
+      const st = r ? r.status : 'idle';
+      const cls = st==='ok'?'good':st==='error'?'bad':st==='skipped'?'warn':st==='running'?'accent':'';
+      d.innerHTML = '<div class="n">'+label+'<span class="pill '+cls+'"><span class="dot"></span>'+st+'</span></div><div class="s">'+esc(r && r.summary ? r.summary : 'No run recorded yet.')+'</div><div class="t">'+(r ? tfmt(r.finished_at||r.started_at) : '')+'</div>';
+      box.appendChild(d);
+    }
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  // ---------- broker helpers ----------
+  function findStop(sym){
+    return S.orders.find(o => o.symbol===sym && o.side==='sell' && (o.trigger==='stop' || o.stop_price) && ['confirmed','queued','new','unconfirmed','partially_filled'].includes(o.state));
+  }
+  function lastPrice(sym){
+    const q = S.quotes[sym]; if(!q) return null;
+    const a = num(q.last_trade_price), b = num(q.last_non_reg_trade_price);
+    const ta = Date.parse(q.venue_last_trade_time||0), tb = Date.parse(q.venue_last_non_reg_trade_time||0);
+    if(a!=null && b!=null) return tb>ta ? b : a; return a!=null ? a : b;
+  }
+
+  // ---------- render: header + officer ----------
+  function renderTop(){
+    const st = S.state || {}; const stats = S.stats || {};
+    let unreal = 0, deployed = 0, openRisk = 0, biggest = 0;
+    const openTh = S.theses.filter(t => t.status==='open');
+    for (const t of openTh){
+      const ml = num(t.max_loss_usd)||0, cr = num(t.credit)||0, q = num(t.quantity)||0;
+      openRisk += ml; biggest = Math.max(biggest, ml); deployed += cr*100*q;
+      const mk = num(t.mark); if(mk!=null) unreal += (cr-mk)*100*q;
+    }
+    const realized = num(stats.realized_pnl)||0;
+    const equity = BASE + realized + unreal;
+    $('k-equity').textContent = fmt$(equity);
+    const de = $('k-equity-d'); de.textContent = (equity-BASE>=0?'+':'−') + '$' + fmtN(Math.abs(equity-BASE)) + ' vs base'; de.className='d ' + (equity-BASE>=0?'pos':'neg');
+    const ws = num(st.week_start_equity), ms = num(st.month_start_equity);
+    signed($('k-week'), ws!=null ? equity-ws : null); signed($('k-month'), ms!=null ? equity-ms : null);
+    if(S.portfolio){ $('k-cash').textContent = fmt$(num(S.portfolio.cash)||0); $('k-cash-d').textContent = 'buying power ' + fmt$(num(S.portfolio.buying_power && S.portfolio.buying_power.buying_power)||0); }
+    // gauges
+    const capPosG = num(CAPS.max_positions)||10, capRisk = num(CAPS.risk_per_position_usd)||num(CAPS.max_loss_per_position_usd)||null, streakAt = num(CAPS.loss_streak_halve_at)||3;
+    const n = openTh.length; $('g-pos').textContent = n + ' / ' + capPosG; bar('b-pos', n/capPosG);
+    const rp = openRisk/BASE; $('g-risk').textContent = fmt$(openRisk) + ' · ' + fmtN(rp*100,0)+'%'; bar('b-risk', rp);
+    $('g-dep').textContent = fmt$(deployed); bar('b-dep', deployed/(0.1*BASE));
+    $('g-big').textContent = biggest ? fmt$(biggest) : '—'; bar('b-big', capRisk ? biggest/capRisk : 0);
+    const ls = num(st.loss_streak)||0; $('g-streak').textContent = String(ls); bar('b-streak', ls/streakAt);
+    // officer state pill + alerts
+    const alerts = [];
+    if(st.halted) alerts.push(['bad','HALTED by the kill switch. No new entries until halted=false.']);
+    else if(st.breaker_month) alerts.push(['bad','Monthly breaker on: flat until the first trading day of next month.']);
+    if(st.breaker_week) alerts.push(['warn','Weekly breaker on: no new entries until Monday.']);
+    const uncovered = openTh.filter(t => !t.tp_order_id);
+    if(uncovered.length) alerts.push(['bad','No take-profit order recorded for ' + uncovered.map(t=>t.symbol).join(', ') + '. The next monitor run must place one.']);
+    const capPos = num(CAPS.max_positions); if(capPos && n > capPos) alerts.push(['bad','More than ' + capPos + ' positions open.']);
+    const orphan = S.positions.filter(p => !S.theses.some(t => t.symbol===(p.chain_symbol||p.symbol) && t.status==='open'));
+    if(orphan.length && S.dbReady) alerts.push(['warn','Positions with no open thesis: ' + orphan.map(p=>p.symbol).join(', ') + '. Not the desk\'s to touch.']);
+    const box = $('officer-alerts'); box.innerHTML = '';
+    for (const [c,t] of alerts){ const d = document.createElement('div'); d.className='note ' + (c==='bad'?'bad':''); d.textContent = t; box.appendChild(d); }
+    if(!S.state && !S.portfolio) setPill('p-state','', 'Officer: waiting for data');
+    else if(alerts.some(a=>a[0]==='bad')) setPill('p-state','bad','Officer: action required');
+    else if(alerts.length) setPill('p-state','warn','Officer: restricted');
+    else setPill('p-state','good','Officer: clear to trade');
+    $('officer-meta').textContent = S.state && S.state.last_updated ? 'state ' + tfmt(S.state.last_updated) : '';
+  }
+  function bar(id, frac){ const el = $(id); const f = Math.max(0, Math.min(1, frac||0)); el.style.transform = 'scaleX(' + f + ')'; el.className = f>=1 ? 'bad' : f>=0.75 ? 'warn' : ''; }
+
+  // ---------- render: tables ----------
+  function renderPositions(){
+    const tb = $('pos-body'); tb.innerHTML = '';
+    for (const p of S.positions){
+      const qty = num(p.quantity)||0, cost = num(p.average_price), side = p.type||'';
+      const label = (p.chain_symbol||p.symbol||'') + (p.strike_price ? ' ' + fmtN(num(p.strike_price),1) : '') + (p.option_type ? p.option_type[0].toUpperCase() : '') + (p.expiration_date ? ' ' + p.expiration_date : '');
+      const mk = num(p.mark_price); const pnl = (cost!=null && mk!=null) ? (side==='short' ? (cost-mk) : (mk-cost))*100*qty : null;
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td class="sym">'+esc(label)+'</td><td class="num">'+fmtN(qty,0)+'</td><td class="num">'+(cost!=null?fmtN(cost):'—')+'</td><td class="num">'+(mk!=null?fmtN(mk):'—')+'</td><td class="num '+(pnl>0?'pos':pnl<0?'neg':'')+'">'+(pnl!=null?fmt$(pnl):'—')+'</td><td><span class="tag">'+esc(side)+'</span></td>';
+      tb.appendChild(tr);
+    }
+    $('pos-empty').hidden = S.positions.length>0;
+    $('pos-meta').textContent = S.account ? 'account ••••' + S.account.slice(-4) : '';
+  }
+  function renderOrders(){
+    const tb = $('ord-body'); tb.innerHTML = '';
+    const list = S.orders.slice(0,20);
+    for (const o of list){
+      const type = (o.direction ? o.direction + ' ' : '') + (o.type||'');
+      const price = num(o.premium) ?? num(o.processed_premium) ?? num(o.price) ?? num(o.average_price);
+      const legs = (o.legs||[]).map(l => (l.side||'')[0] + (l.strike_price ? fmtN(num(l.strike_price),1) : '') + (l.option_type ? l.option_type[0].toUpperCase() : '')).join('/');
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>'+tfmt(o.last_transaction_at||o.created_at).replace(' ET','')+'</td><td class="sym">'+esc((o.chain_symbol||o.symbol||'') + (legs ? ' ' + legs : ''))+'</td><td>'+esc(o.opening_strategy||o.closing_strategy||o.side||'')+'</td><td>'+esc(type)+'</td><td><span class="tag">'+esc(o.state||'')+'</span>'+(o.placed_agent && o.placed_agent!=='user' ? ' <span class="tag">'+esc(o.placed_agent)+'</span>' : '')+'</td><td class="num">'+esc(o.cumulative_quantity && num(o.cumulative_quantity)>0 ? o.cumulative_quantity : (o.quantity||o.dollar_based_amount||''))+'</td><td class="num">'+(price!=null?fmtN(price):'—')+'</td>';
+      tb.appendChild(tr);
+    }
+    $('ord-empty').hidden = list.length>0;
+  }
+  function renderTheses(){
+    const tb = $('theses-body'); tb.innerHTML = '';
+    const list = S.theses.filter(t => t.status!=='closed').sort((a,b)=> String(b.created_at||'').localeCompare(String(a.created_at||'')));
+    for (const t of list){
+      const oc = t.officer_check; const ocTxt = oc ? (oc.passed ? '<span class="pill good"><span class="dot"></span>passed</span>' : '<span class="pill bad"><span class="dot"></span>' + esc((oc.reasons||[]).join('; ') || 'vetoed') + '</span>') : '<span class="pill"><span class="dot"></span>pending</span>';
+      const tr = document.createElement('tr');
+      const ind = t.indicators || {}; const smcTxt = ind.smc_internal!=null ? ('i' + (ind.smc_internal>0?'bull':ind.smc_internal<0?'bear':'—') + ' / s' + (ind.smc_swing>0?'bull':ind.smc_swing<0?'bear':'—') + (ind.smc_zone ? ' · ' + ind.smc_zone : '')) : '—';
+      const wrTxt = ind.wr_fast!=null ? (fmtN(ind.wr_fast,0) + ' / ' + (ind.wr_slow!=null?fmtN(ind.wr_slow,0):'—') + (ind.wr_zone && ind.wr_zone!=='none' ? ' ' + ind.wr_zone : '')) : '—';
+      const isSpread = t.setup==='P' || t.short_strike!=null;
+      const legTxt = isSpread ? (esc(t.expiry||'') + ' ' + (t.short_strike!=null?fmtN(t.short_strike,1):'—') + '/' + (t.long_strike!=null?fmtN(t.long_strike,1):'—')) : (t.trigger!=null?fmtN(t.trigger):'—');
+      const creditTxt = isSpread ? ((t.credit!=null?fmtN(t.credit):(t.credit_target!=null?fmtN(t.credit_target)+' (target)':'—')) + (t.width ? ' on $' + fmtN(t.width,1) : '') + (t.delta_at_entry!=null ? ' · Δ ' + fmtN(t.delta_at_entry) : '')) : smcTxt;
+      tr.innerHTML = '<td class="sym">'+esc(t.symbol||'')+'</td><td>'+esc(t.setup||'')+'</td><td><span class="tag">'+esc(t.status||'')+'</span></td><td class="num">'+legTxt+'</td><td class="num">'+(isSpread ? (t.stop_mark!=null?fmtN(t.stop_mark):'—') : (t.stop!=null?fmtN(t.stop):'—'))+'</td><td class="num">'+(isSpread ? (t.tp_price!=null?fmtN(t.tp_price):'—') : (t.target!=null?fmtN(t.target):'—'))+'</td><td class="num">'+(isSpread ? (t.quantity!=null?t.quantity:'—') : (t.shares!=null?t.shares:'—'))+'</td><td class="num">'+(isSpread ? (t.max_loss_usd!=null?fmt$(num(t.max_loss_usd)):'—') : (t.risk_usd!=null?fmt$(num(t.risk_usd)):'—'))+'</td><td>'+creditTxt+'</td><td class="num">'+esc(wrTxt)+'</td><td>'+(t.council && t.council.verdict ? '<span class="pill '+(t.council.verdict==='approved'?'good':'bad')+'"><span class="dot"></span>'+esc(t.council.verdict)+'</span>' : '<span class="pill"><span class="dot"></span>pending</span>')+'</td><td>'+ocTxt+'</td>';
+      tb.appendChild(tr);
+    }
+    $('theses-empty').hidden = list.length>0;
+    $('theses-meta').textContent = list.length ? list.length + ' active' : '';
+  }
+  function renderLearning(){
+    const s = S.stats || {}; const tr = num(s.trades)||0;
+    $('s-trades').textContent = tr; $('s-win').textContent = tr ? fmtN((num(s.wins)||0)/tr*100,0)+'%' : '—';
+    $('s-avgr').textContent = s.avg_return_on_risk_pct!=null ? fmtN(s.avg_return_on_risk_pct,1)+'%' : '—'; $('s-exp').textContent = s.avg_days_held!=null ? fmtN(s.avg_days_held,1) : '—';
+    $('learn-meta').textContent = s.updated_at ? 'updated ' + tfmt(s.updated_at) : '';
+    const pb = $('params'); pb.innerHTML = '';
+    const p = S.params || {};
+    const skip = new Set(['bounds','updated_at','updated_by']); const keys = Object.keys(p).filter(k => !skip.has(k) && typeof p[k] !== 'object').sort();
+    for (const k of keys){ const d = document.createElement('div'); d.className='param'; d.innerHTML = '<div class="k">'+k.replace(/_/g,' ')+'</div><div class="v">'+(p[k]!=null?esc(String(p[k])):'—')+'</div>'; pb.appendChild(d); }
+    const lb = $('lessons'); lb.innerHTML = '';
+    for (const l of S.lessons){ const li = document.createElement('li'); li.innerHTML = '<div class="d">'+esc(l.date||'')+'</div><div>'+esc(l.text||'')+'</div>' + (l.evidence ? '<div class="x">Evidence: '+esc(l.evidence)+'</div>' : '') + (l.applied_change ? '<div class="x">Applied: '+esc(l.applied_change)+'</div>' : ''); lb.appendChild(li); }
+    $('lessons-empty').hidden = S.lessons.length>0;
+  }
+  function renderAll(){ renderTop(); renderRuns(); renderPositions(); renderOrders(); renderTheses(); renderLearning(); }
+  renderAll();
+
+  // ---------- kill switch ----------
+  $('kill').addEventListener('click', async () => {
+    if(!S.db) return; const st = S.state || {}; const halting = !st.halted;
+    const ok = window.confirm(halting ? 'Halt the desk? No new entries until you resume. Open positions keep their stops and are still managed to exit.' : 'Resume the desk? Entries start again at the next entry window.');
+    if(!ok) return;
+    try { await S.db.doc('config/state').update({ halted: halting, halted_by: halting ? 'dashboard button' : null, halted_at: halting ? new Date().toISOString() : null, last_updated: new Date().toISOString() }); }
+    catch(e){ window.alert('Could not write the kill switch: ' + (e && (e.code||e.message) || 'error')); }
+  });
+  function renderKill(){ const st = S.state || {}; const b = $('kill'); b.disabled = !S.db; b.textContent = st.halted ? 'Resume desk' : 'Halt desk'; b.style.color = st.halted ? 'var(--good)' : 'var(--bad)'; b.style.borderColor = st.halted ? 'var(--good)' : 'var(--bad)'; }
+
+  // ---------- desk memory (db) ----------
+  claude.use('db').then(db => {
+    if(!db){ setPill('p-db','warn','Desk memory: unavailable here'); $('pipe-meta').textContent = 'open in claude.ai for live state'; return; }
+    S.db = db; S.dbReady = true; setPill('p-db','good','Desk memory: live'); renderKill();
+    const onErr = e => setPill('p-db','bad','Desk memory: ' + (e && e.code || 'error'));
+    db.doc('config/caps').onSnapshot(d => { CAPS = d.exists ? (d.data()||{}) : {}; const b = num(CAPS.base_usd); if(b){ BASE = b; renderBase(); } const cp = num(CAPS.max_positions), cr = num(CAPS.risk_per_position_usd)||num(CAPS.max_loss_per_position_usd), cs = num(CAPS.loss_streak_halve_at); if(cp) $('g-pos-cap').textContent = 'cap ' + cp; if(cr){ $('g-big-cap').textContent = 'cap ' + fmt$(cr); $('g-risk-cap').textContent = 'cap ' + fmt$(cr*(cp||1)); } if(cs) $('g-streak-cap').textContent = 'halve at ' + cs; renderTop(); }, onErr);
+    db.collection('runs').onSnapshot(snap => { S.runs = {}; snap.docs.forEach(d => { S.runs[d.id] = d.data()||{}; }); renderRuns(); }, onErr);
+    db.doc('config/state').onSnapshot(d => { S.state = d.exists ? d.data() : null; renderTop(); renderKill(); }, onErr);
+    db.doc('config/params').onSnapshot(d => { S.params = d.exists ? d.data() : null; renderLearning(); }, onErr);
+    db.doc('stats/summary').onSnapshot(d => { S.stats = d.exists ? d.data() : null; renderTop(); renderLearning(); }, onErr);
+    db.collection('theses').where('status','in',['candidate','open','rejected']).limit(200).onSnapshot(snap => { S.theses = snap.docs.map(d => Object.assign({id:d.id}, d.data()||{})); renderTheses(); renderTop(); }, onErr);
+    db.collection('lessons').orderBy('date','desc').limit(6).onSnapshot(snap => { S.lessons = snap.docs.map(d => d.data()||{}); renderLearning(); }, onErr);
+  });
+
+  // ---------- broker (mcp) ----------
+  const RH = 'Robinhood';
+  claude.use('mcp').then(mcp => {
+    if(!mcp){ setPill('p-broker','warn','Broker: open in claude.ai for live data'); $('f-updated').textContent = 'Broker data: unavailable on this surface'; return; }
+    const fail = (ev, what) => {
+      const c = ev.error && ev.error.code;
+      if(c==='needs_reauth') setPill('p-broker','bad','Broker: reconnect Robinhood in claude.ai Settings → Connectors');
+      else if(c==='server_not_connected' || c==='selection_required') setPill('p-broker','bad','Broker: add Robinhood in claude.ai Settings → Connectors');
+      else if(c==='not_granted' || c==='blocked_by_policy' || c==='approval_required') setPill('p-broker','bad','Broker: access not granted for ' + what);
+      else setPill('p-broker','warn','Broker: ' + what + ' failed (' + (c||'error') + '), showing last data');
+    };
+    const stamp = res => { if(res.cache && res.cache.storedAt) S.brokerAt = res.cache.storedAt; else S.brokerAt = Date.now(); $('f-updated').textContent = 'Broker data as of ' + new Date(S.brokerAt).toLocaleTimeString('en-US',{timeZone:'America/New_York'}) + ' ET'; };
+    const OPT = { refetchInterval: 60000, cache: { staleTime: 30000 } };
+    let quoteUnsub = null, quoteKey = '';
+    function watchQuotes(){
+      const syms = [...new Set(S.positions.map(p=>p.symbol))].sort(); const key = syms.join(',');
+      if(key===quoteKey) return; quoteKey = key; if(quoteUnsub){ quoteUnsub(); quoteUnsub=null; }
+      if(!syms.length){ S.quotes = {}; renderAll(); return; }
+      quoteUnsub = mcp.watchTool(RH, 'get_equity_quotes', {symbols: syms}, ev => {
+        if(ev.type==='error') return fail(ev,'quotes');
+        const d = ev.result.payload && ev.result.payload.data; const rs = (d && d.results) || [];
+        S.quotes = {}; rs.forEach(r => { if(r.quote) S.quotes[r.quote.symbol] = r.quote; }); renderAll();
+      }, OPT);
+    }
+    // account discovery first: the page never embeds an account number
+    mcp.watchTool(RH, 'get_accounts', null, ev => {
+      if(ev.type==='error') return fail(ev,'accounts');
+      const d = ev.result.payload && ev.result.payload.data; const accts = (d && d.accounts) || [];
+      const a = accts.find(x => x.agentic_allowed===true);
+      if(!a){ setPill('p-broker','bad','Broker: no agentic account visible to this viewer'); return; }
+      if(S.account===a.account_number) return; S.account = a.account_number;
+      setPill('p-broker','good','Broker: live');
+      mcp.watchTool(RH, 'get_portfolio', {account_number: S.account}, ev2 => { if(ev2.type==='error') return fail(ev2,'portfolio'); stamp(ev2.result); S.portfolio = ev2.result.payload && ev2.result.payload.data; renderTop(); }, OPT);
+      mcp.watchTool(RH, 'get_option_positions', {account_number: S.account, nonzero: true}, ev2 => { if(ev2.type==='error') return fail(ev2,'positions'); stamp(ev2.result); const d2 = ev2.result.payload && ev2.result.payload.data; S.positions = (d2 && (d2.positions||d2.results)) || []; renderAll(); }, OPT);
+      mcp.watchTool(RH, 'get_option_orders', {account_number: S.account}, ev2 => { if(ev2.type==='error') return fail(ev2,'orders'); stamp(ev2.result); const d2 = ev2.result.payload && ev2.result.payload.data; S.orders = (d2 && (d2.orders||d2.results)) || []; renderAll(); }, OPT);
+    }, { cache: { staleTime: 300000 } });
+    const btn = $('refresh'); btn.hidden = false;
+    btn.addEventListener('click', () => { mcp.invalidate(RH).catch(()=>{}); });
+  });
+})();
+</script>
